@@ -1,0 +1,13 @@
+{
+  "name": "copilot-compress",
+  "version": "1.0.0",
+  "description": "Copilot CLI extension: algorithmic prompt compression",
+  "type": "module",
+  "main": "extension.mjs",
+  "dependencies": {
+    "@github/copilot-sdk": "*"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
