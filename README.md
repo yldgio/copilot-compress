@@ -82,7 +82,9 @@ If you prefer manual copy:
 
 ```sh
 git clone https://github.com/yldgio/copilot-compress.git
-cp -R copilot-compress ~/.copilot/extensions/copilot-compress
+mkdir -p ~/.copilot/extensions/copilot-compress
+cp copilot-compress/extension.mjs ~/.copilot/extensions/copilot-compress/
+cp copilot-compress/package.json ~/.copilot/extensions/copilot-compress/
 cd ~/.copilot/extensions/copilot-compress
 npm install --omit=dev
 ```
@@ -91,12 +93,24 @@ npm install --omit=dev
 
 ```powershell
 git clone https://github.com/yldgio/copilot-compress.git
-Copy-Item -Recurse .\copilot-compress $HOME\.copilot\extensions\copilot-compress -Force
+New-Item -ItemType Directory -Force $HOME\.copilot\extensions\copilot-compress | Out-Null
+Copy-Item .\copilot-compress\extension.mjs $HOME\.copilot\extensions\copilot-compress -Force
+Copy-Item .\copilot-compress\package.json $HOME\.copilot\extensions\copilot-compress -Force
 Set-Location $HOME\.copilot\extensions\copilot-compress
 npm install --omit=dev
 ```
 
 Restart Copilot CLI and run `/compress status` to verify installation.
+
+### What gets installed
+
+Installers copy only runtime assets:
+
+- `extension.mjs`
+- `package.json`
+- `node_modules/@github/copilot-sdk` (via `npm install --omit=dev`)
+
+`src/` is used for development/tests in this repository and is not required at runtime.
 
 ## Requirements
 
