@@ -40,4 +40,37 @@ describe('extractCodeBlocks', () => {
     assert.equal(slots.size, 0);
     assert.equal(stripped, text);
   });
+
+  // Issue 2: CRLF fenced block extraction
+  it('extracts fenced block with CRLF line endings', () => {
+    const text = 'Fix the bug in:\r\n```js\r\nconst a = 1;\r\n```\r\nand push';
+    const { stripped, slots } = extractCodeBlocks(text);
+    assert.equal(slots.size, 1, 'CRLF fenced block not extracted');
+    assert.ok(!stripped.includes('const a'), 'code content leaked into stripped text');
+    assert.ok(stripped.includes('__CODEBLOCK_'));
+  });
+
+  // Issue 2+3: CRLF + hyphenated language tag
+  it('extracts fenced block with hyphenated language tag (e.g. objective-c)', () => {
+    const text = 'Example:\n```objective-c\n[obj method];\n```\ndone';
+    const { stripped, slots } = extractCodeBlocks(text);
+    assert.equal(slots.size, 1, 'hyphenated lang tag fenced block not extracted');
+    assert.ok(!stripped.includes('[obj method]'));
+  });
+
+  it('extracts fenced block with hyphenated tag and CRLF', () => {
+    const text = 'Example:\r\n```c-sharp\r\nvar x = 1;\r\n```\r\ndone';
+    const { stripped, slots } = extractCodeBlocks(text);
+    assert.equal(slots.size, 1, 'hyphenated lang tag + CRLF fenced block not extracted');
+    assert.ok(!stripped.includes('var x = 1'));
+  });
+
+  // Issue 4: CRLF inline code
+  it('does not capture \\r inside inline code match', () => {
+    // CRLF: backtick-span must not bleed across the \r before \n
+    const text = 'Run `cmd\r\n` and check output';
+    const { stripped, slots } = extractCodeBlocks(text);
+    // The span contains \r\n — should NOT be treated as a valid inline code token
+    assert.equal(slots.size, 0, 'CRLF inside inline code incorrectly matched');
+  });
 });

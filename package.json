@@ -4,6 +4,9 @@
   "description": "Copilot CLI extension: algorithmic prompt compression",
   "type": "module",
   "main": "extension.mjs",
+  "scripts": {
+    "test": "node --test src/compress.test.mjs src/code-blocks.test.mjs src/lang-detect.test.mjs"
+  },
   "dependencies": {
     "@github/copilot-sdk": "*"
   },
