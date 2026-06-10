@@ -2,8 +2,8 @@
 // placeholders so the compression pass never touches code content.
 // Placeholders survive compressText() unchanged (no filler words match __CODEBLOCK_N__).
 
-const FENCED_RE  = /```[\w]*\n[\s\S]*?```/g;
-const INLINE_RE  = /`[^`\n]+`/g;
+const FENCED_RE  = /```[\w-]*\r?\n[\s\S]*?```/g;
+const INLINE_RE  = /`[^`\r\n]+`/g;
 const SLOT_PREFIX = '__CODEBLOCK_';
 
 /**
