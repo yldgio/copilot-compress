@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "Copilot CLI extension: algorithmic prompt compression",
   "type": "module",
-  "main": "extension.mjs",
+  "main": "dist/extension.mjs",
   "scripts": {
+    "build": "rollup -c",
     "test": "node --test src/compress.test.mjs src/code-blocks.test.mjs src/lang-detect.test.mjs"
   },
   "dependencies": {
@@ -12,5 +13,8 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "rollup": "^4.61.1"
   }
 }
