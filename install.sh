@@ -18,7 +18,7 @@ mkdir -p "$DEST"
 echo "Installing copilot-compress to: $DEST"
 
 # Copy only runtime files — no docs, tests, or CI
-cp "$SCRIPT_DIR/extension.mjs" "$DEST/"
+cp "$SCRIPT_DIR/dist/extension.mjs" "$DEST/"
 cp "$SCRIPT_DIR/package.json" "$DEST/"
 
 cd "$DEST"

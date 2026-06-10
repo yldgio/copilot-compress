@@ -14,8 +14,23 @@ Core structure:
 - `src/compress.mjs` — pure EN/IT compression algorithm (verbatim upstream copy)
 - `src/code-blocks.mjs` — code block extraction/restoration with placeholders
 - `src/lang-detect.mjs` — per-message EN/IT detection heuristic (`IT_THRESHOLD=0.30`)
+- `dist/extension.mjs` — **committed build artifact**; rollup bundle of `extension.mjs` + all `src/` modules. This is what the installers copy.
 
 Design rule: `src/` has **no external dependencies**. Only `extension.mjs` imports `@github/copilot-sdk/extension`.
+
+## Build
+
+The installers deploy `dist/extension.mjs`, not the raw source files. This single-file bundle is produced by rollup.
+
+| What | Value |
+|---|---|
+| Source | `extension.mjs` + `src/*.mjs` |
+| Output | `dist/extension.mjs` (committed to git) |
+| Command | `npm run build` |
+| Config | `rollup.config.js` |
+| External | `@github/copilot-sdk/extension` (never bundled — installed via npm) |
+
+**Rule:** always run `npm run build` before committing if you change `extension.mjs` or any `src/` file. The `dist/` folder is committed so users can install without a build step.
 
 ## Key design decisions
 
@@ -91,7 +106,7 @@ Run:
 node --test src/*.test.mjs
 ```
 
-Current suite total: **19 tests**.
+Current suite total: **23 tests**.
 
 ## Extending the extension
 
@@ -113,3 +128,4 @@ Current suite total: **19 tests**.
 2. `src/` modules have zero external imports.
 3. `onUserPromptSubmitted` must never throw.
 4. Command output must use `session.log()` and never `modifiedPrompt`.
+5. `dist/extension.mjs` must be rebuilt (`npm run build`) and committed whenever `extension.mjs` or any `src/` file changes.

@@ -14,7 +14,7 @@ Write-Host "Installing copilot-compress to: $dest"
 New-Item -ItemType Directory -Force $dest | Out-Null
 
 # Copy only runtime files — no docs, tests, or CI
-Copy-Item "$src\extension.mjs" $dest -Force
+Copy-Item "$src\dist\extension.mjs" $dest -Force
 Copy-Item "$src\package.json" $dest -Force
 
 Set-Location $dest

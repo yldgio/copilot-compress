@@ -83,7 +83,7 @@ If you prefer manual copy:
 ```sh
 git clone https://github.com/yldgio/copilot-compress.git
 mkdir -p ~/.copilot/extensions/copilot-compress
-cp copilot-compress/extension.mjs ~/.copilot/extensions/copilot-compress/
+cp copilot-compress/dist/extension.mjs ~/.copilot/extensions/copilot-compress/
 cp copilot-compress/package.json ~/.copilot/extensions/copilot-compress/
 cd ~/.copilot/extensions/copilot-compress
 npm install --omit=dev
@@ -94,7 +94,7 @@ npm install --omit=dev
 ```powershell
 git clone https://github.com/yldgio/copilot-compress.git
 New-Item -ItemType Directory -Force $HOME\.copilot\extensions\copilot-compress | Out-Null
-Copy-Item .\copilot-compress\extension.mjs $HOME\.copilot\extensions\copilot-compress -Force
+Copy-Item .\copilot-compress\dist\extension.mjs $HOME\.copilot\extensions\copilot-compress -Force
 Copy-Item .\copilot-compress\package.json $HOME\.copilot\extensions\copilot-compress -Force
 Set-Location $HOME\.copilot\extensions\copilot-compress
 npm install --omit=dev
@@ -102,15 +102,37 @@ npm install --omit=dev
 
 Restart Copilot CLI and run `/compress status` to verify installation.
 
+## Development
+
+### Build
+
+The installers deploy `dist/extension.mjs` — a single-file rollup bundle of `extension.mjs` and all `src/` modules. `@github/copilot-sdk` is kept external (not bundled).
+
+```sh
+npm run build
+```
+
+This writes `dist/extension.mjs`. Commit the result alongside your source changes.
+
+**Always rebuild before committing** if you change `extension.mjs` or any `src/` file.
+
+### Tests
+
+Tests run against `src/` directly (no build required):
+
+```sh
+npm test
+```
+
+Current suite: **23 tests** (23 pass).
+
 ### What gets installed
 
 Installers copy only runtime assets:
 
-- `extension.mjs`
+- `dist/extension.mjs` (pre-built bundle — includes all `src/` modules)
 - `package.json`
 - `node_modules/@github/copilot-sdk` (via `npm install --omit=dev`)
-
-`src/` is used for development/tests in this repository and is not required at runtime.
 
 ## Requirements
 
