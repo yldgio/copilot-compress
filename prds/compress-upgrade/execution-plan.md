@@ -168,9 +168,9 @@ Wave 3: v1.2.0 done → 3.A → v1.3.0
 | # | Question | Blocks |
 |---|---------|--------|
 | §15.1 | ~~Is `onToolResult` available in `@github/copilot-sdk/extension`?~~ ✅ **RESOLVED** — `onPostToolUse` confirmed in `types.d.ts:872`. Output field: `modifiedResult`. Wave 2 unblocked. | ~~Wave 2 entirely~~ |
-| §15.2 | Should `minimal` mode strip pleasantries? (Current plan: yes) | Slice 1.C |
-| §15.3 | Italian hedging word list — needs review against real session data | Slice 1.C |
-| §15.4 | Safety gate proper noun ratio threshold (40% is a hypothesis) | Slice 1.C |
+| §15.2 | `minimal` strip pleasantries? | ✅ **RESOLVED** — Yes, strip at all levels above `off` | Slice 1.C |
+| §15.3 | Italian hedging word list | ✅ **RESOLVED** — Start with current list, refine post-launch | Slice 1.C |
+| §15.4 | Safety gate proper noun ratio threshold | ✅ **RESOLVED** — 40% confirmed | Slice 1.C |
 
 ---
 
