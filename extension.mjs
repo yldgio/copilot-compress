@@ -12,12 +12,13 @@ import { stripComments } from "./src/comment-strip.mjs";
 import { detectLang } from "./src/lang-detect.mjs";
 import { isDataFormatLang, looksLikeDataFormat } from "./src/data-format.mjs";
 import { validate } from "./src/validator.mjs";
+import { estimateTokens } from "./src/token-estimate.mjs";
 
 // ─── Session state ────────────────────────────────────────────────────────────
 let session;
 let intensity   = 'off'; // 'off' | 'lite' | 'standard' | 'aggressive'
 let verboseMode = false;
-let stats = { originalChars: 0, compressedChars: 0, messageCount: 0 };
+let stats = { originalChars: 0, compressedChars: 0, messageCount: 0, tokensSaved: 0 };
 
 // ─── /compress command handler ────────────────────────────────────────────────
 async function handleCompressCommand(context) {
@@ -44,7 +45,7 @@ async function handleCompressCommand(context) {
     return;
   }
   if (sub === 'status' || sub === '') {
-    const tokensSaved = Math.round((stats.originalChars - stats.compressedChars) / 4);
+    const tokensSaved = stats.tokensSaved;
     if (intensity === 'off') {
       await session.log(
         `Compression: **OFF** · Verbose: ${verboseMode ? '**ON**' : '**OFF**'}`,
@@ -124,11 +125,15 @@ session = await joinSession({
 
         // Verbose line (ephemeral — shown in session, not sent to LLM)
         if (verboseMode) {
-          const tokensSaved = Math.round((originalLen - compressedLen) / 4);
+          const msgTokensSaved = estimateTokens(text) - estimateTokens(finalText);
+          stats.tokensSaved += msgTokensSaved;
           session.log(
-            `[compress] ${originalLen.toLocaleString()} → ${compressedLen.toLocaleString()} chars (-${pct}%) · ~${tokensSaved.toLocaleString()} tokens saved`,
+            `Compressed: ${originalLen.toLocaleString()} → ${compressedLen.toLocaleString()} chars (-${pct}%) · ~${msgTokensSaved.toLocaleString()} tokens saved (${intensity})`,
             { ephemeral: true },
           ).catch(() => {});
+        } else {
+          // Keep tokensSaved in sync even when verbose is off
+          stats.tokensSaved += estimateTokens(text) - estimateTokens(finalText);
         }
 
         return { modifiedPrompt: finalText + note };
