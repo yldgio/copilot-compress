@@ -39,3 +39,21 @@ describe('compressText IT', () => {
     assert.ok(out.toLowerCase().startsWith('alla'), 'sentence-start "alla" was wrongly removed');
   });
 });
+
+describe('compressText intensity parameter', () => {
+  it('accepts lite intensity and returns string', () => {
+    const out = compressText('hello world test', 'en', 'lite');
+    assert.equal(typeof out, 'string');
+    assert.ok(out.length > 0);
+  });
+  it('accepts aggressive intensity and returns string', () => {
+    const out = compressText('hello world test', 'en', 'aggressive');
+    assert.equal(typeof out, 'string');
+    assert.ok(out.length > 0);
+  });
+  it('accepts off intensity and returns string', () => {
+    const out = compressText('hello world test', 'en', 'off');
+    assert.equal(typeof out, 'string');
+    assert.ok(out.length > 0);
+  });
+});

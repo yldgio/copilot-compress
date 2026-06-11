@@ -61,8 +61,10 @@ function buildItalianContractedPattern() {
  *
  * @param {string} text - Text to compress.
  * @param {'en'|'it'} [lang='en'] - Language of the text; controls filler word list.
+ * @param {'off'|'lite'|'standard'|'aggressive'} [intensity='standard'] - Compression intensity level.
+ *   Body is unchanged in 1.B — intensity will be wired in 1.C.
  */
-export function compressText(text, lang = 'en') {
+export function compressText(text, lang = 'en', intensity = 'standard') {
   if (!text || text.length === 0) return text;
 
   let compressed = text;

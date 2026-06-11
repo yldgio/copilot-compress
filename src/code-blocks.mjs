@@ -8,9 +8,10 @@ const SLOT_PREFIX = '__CODEBLOCK_';
 
 /**
  * @param {string} text
+ * @param {'off'|'lite'|'standard'|'aggressive'} [intensity='standard'] - Reserved for 1.C; ignored here.
  * @returns {{ stripped: string, slots: Map<string, { raw: string, lang: string }> }}
  */
-export function extractCodeBlocks(text) {
+export function extractCodeBlocks(text, intensity = 'standard') {
   const slots = new Map();
   let idx = 0;
 
