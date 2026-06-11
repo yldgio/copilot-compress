@@ -1,7 +1,7 @@
 /**
  * copilot-compress — Copilot CLI extension
  * Algorithmically compresses user prompts to reduce token consumption.
- * Toggle: /compress on|off|verbose|status
+ * Toggle: /compress on|off|lite|standard|aggressive|verbose|status
  * Supports EN + IT. Zero LLM calls.
  */
 
@@ -13,8 +13,8 @@ import { looksLikeDataFormat } from "./src/data-format.mjs";
 
 // ─── Session state ────────────────────────────────────────────────────────────
 let session;
-let compressEnabled = false;
-let verboseMode     = false;
+let intensity   = 'off'; // 'off' | 'lite' | 'standard' | 'aggressive'
+let verboseMode = false;
 let stats = { originalChars: 0, compressedChars: 0, messageCount: 0 };
 
 // ─── /compress command handler ────────────────────────────────────────────────
@@ -22,13 +22,18 @@ async function handleCompressCommand(context) {
   const sub = (context.args ?? '').trim().toLowerCase();
 
   if (sub === 'on') {
-    compressEnabled = true;
-    await session.log('Compression **ON** (lang: auto-detect, EN/IT)');
+    intensity = 'standard'; // backward compat: /compress on → standard
+    await session.log('Compression **ON** (standard) — lang: auto-detect, EN/IT');
     return;
   }
   if (sub === 'off') {
-    compressEnabled = false;
+    intensity = 'off';
     await session.log('Compression **OFF**');
+    return;
+  }
+  if (sub === 'lite' || sub === 'standard' || sub === 'aggressive') {
+    intensity = sub;
+    await session.log(`Compression **ON** (${intensity}) — lang: auto-detect, EN/IT`);
     return;
   }
   if (sub === 'verbose') {
@@ -37,17 +42,20 @@ async function handleCompressCommand(context) {
     return;
   }
   if (sub === 'status' || sub === '') {
-    const pct = stats.originalChars > 0
-      ? Math.round((1 - stats.compressedChars / stats.originalChars) * 100)
-      : 0;
     const tokensSaved = Math.round((stats.originalChars - stats.compressedChars) / 4);
-    await session.log([
-      `Compression: ${compressEnabled ? '**ON**' : '**OFF**'} · Verbose: ${verboseMode ? '**ON**' : '**OFF**'}`,
-      `Session: ${stats.messageCount} msgs · ${stats.originalChars.toLocaleString()} → ${stats.compressedChars.toLocaleString()} chars (-${pct}%) · ~${tokensSaved.toLocaleString()} tokens saved`,
-    ].join('\n'));
+    if (intensity === 'off') {
+      await session.log(
+        `Compression: **OFF** · Verbose: ${verboseMode ? '**ON**' : '**OFF**'}`,
+      );
+    } else {
+      await session.log([
+        `Compression: **ON** (${intensity}) · Verbose: ${verboseMode ? '**ON**' : '**OFF**'}`,
+        `Session: ${stats.messageCount} msgs compressed, ~${tokensSaved.toLocaleString()} tokens saved`,
+      ].join('\n'));
+    }
     return;
   }
-  await session.log('Unknown subcommand. Usage: `/compress on|off|verbose|status`');
+  await session.log('Unknown subcommand. Usage: `/compress on|off|lite|standard|aggressive|verbose|status`');
 }
 
 // ─── Extension entry point ────────────────────────────────────────────────────
@@ -55,7 +63,7 @@ session = await joinSession({
   commands: [
     {
       name: "compress",
-      description: "Toggle algorithmic prompt compression. Subcommands: on, off, verbose, status.",
+      description: "Toggle algorithmic prompt compression. Subcommands: on, off, lite, standard, aggressive, verbose, status.",
       handler: handleCompressCommand,
     },
   ],
@@ -65,7 +73,7 @@ session = await joinSession({
       if (!text) return undefined;
 
       // Pass-through when disabled
-      if (!compressEnabled) return undefined;
+      if (intensity === 'off') return undefined;
 
       // Compression pipeline
       try {
@@ -76,9 +84,9 @@ session = await joinSession({
           return; // return void = no modification, original prompt used
         }
 
-        const { stripped, slots } = extractCodeBlocks(text);
+        const { stripped, slots } = extractCodeBlocks(text, intensity);
         const lang = detectLang(stripped);
-        const compressedStripped = compressText(stripped, lang);
+        const compressedStripped = compressText(stripped, lang, intensity);
         const finalText = restoreCodeBlocks(compressedStripped, slots);
         const compressedLen = finalText.length;
         const pct = Math.round((1 - compressedLen / originalLen) * 100);
