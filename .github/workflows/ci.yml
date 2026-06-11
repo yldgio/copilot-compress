@@ -14,7 +14,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test src/compress.test.mjs
-      - run: node --test src/code-blocks.test.mjs
-      - run: node --test src/lang-detect.test.mjs
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
+      - name: Build and verify dist
+        run: |
+          npm run build
+          # Verify dist has no local imports
+          if grep -q "from './" dist/extension.mjs; then
+            echo "❌ dist/extension.mjs contains local imports — build failed"
+            exit 1
+          fi
+          echo "✅ dist/extension.mjs built successfully"
 

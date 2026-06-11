@@ -38,6 +38,30 @@ Language is auto-detected per message (`en`/`it`) with a lightweight heuristic. 
 
 ## Installation
 
+### 0) Quick install — no clone required
+
+```sh
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/yldgio/copilot-compress/main/install.sh | sh -s -- --remote
+
+# Windows (pwsh) — downloads installer to temp, then runs with -Remote
+$f = "$env:TEMP\copilot-compress-install.ps1"
+Invoke-WebRequest https://raw.githubusercontent.com/yldgio/copilot-compress/main/install.ps1 -OutFile $f
+pwsh $f -Remote
+```
+
+This downloads `dist/extension.mjs` and `package.json` directly from the latest GitHub Release, then runs `npm install --omit=dev`. No git clone needed.
+
+To install a specific version:
+
+```sh
+# Linux/macOS
+sh install.sh --remote v1.2.0
+
+# Windows (pwsh)
+pwsh install.ps1 -Remote -Tag v1.2.0
+```
+
 ### 1) User-wide install (recommended)
 
 #### Linux / macOS
@@ -104,6 +128,16 @@ Restart Copilot CLI and run `/compress status` to verify installation.
 
 ## Development
 
+### Workflow
+
+```
+Edit src/ or extension.mjs
+→ npm test           (verify — must be 23/23)
+→ npm run build      (regenerate dist/)
+→ cp dist/extension.mjs .github/extensions/copilot-compress/extension.mjs
+→ git add dist/ .github/extensions/ && git commit
+```
+
 ### Build
 
 The installers deploy `dist/extension.mjs` — a single-file rollup bundle of `extension.mjs` and all `src/` modules. `@github/copilot-sdk` is kept external (not bundled).
@@ -133,6 +167,17 @@ Installers copy only runtime assets:
 - `dist/extension.mjs` (pre-built bundle — includes all `src/` modules)
 - `package.json`
 - `node_modules/@github/copilot-sdk` (via `npm install --omit=dev`)
+
+### Release
+
+Releases are tag-based. Push a `v*` tag and GitHub Actions does the rest:
+
+```sh
+git tag v1.x.x
+git push --tags
+```
+
+The release workflow runs `npm ci && npm test && npm run build`, verifies the bundle, then publishes a GitHub Release with `dist/extension.mjs`, `package.json`, and the installers as downloadable assets.
 
 ## Requirements
 
