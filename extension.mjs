@@ -10,6 +10,7 @@ import { compressText } from "./src/compress.mjs";
 import { extractCodeBlocks, restoreCodeBlocks } from "./src/code-blocks.mjs";
 import { detectLang } from "./src/lang-detect.mjs";
 import { looksLikeDataFormat } from "./src/data-format.mjs";
+import { validate } from "./src/validator.mjs";
 
 // ─── Session state ────────────────────────────────────────────────────────────
 let session;
@@ -88,6 +89,12 @@ session = await joinSession({
         const lang = detectLang(stripped);
         const compressedStripped = compressText(stripped, lang, intensity);
         const finalText = restoreCodeBlocks(compressedStripped, slots);
+
+        if (!validate(text, finalText)) {
+          if (verboseMode) session.log('⚠️ Validator: invariant failed, using original prompt');
+          return; // void = no modification, original prompt used
+        }
+
         const compressedLen = finalText.length;
         const pct = Math.round((1 - compressedLen / originalLen) * 100);
 
