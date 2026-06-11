@@ -1,3 +1,13 @@
+## [1.2.0] - 2026-06-11
+
+### Added
+- Tool output compression via `onPostToolUse` hook
+- `grep`/`search` results capped at 50 matches (`[N more matches omitted]`)
+- `view`/`read` output capped at 200 lines
+- `bash`/`shell` stdout capped at 5 KB
+- Generic tool output capped at 8 KB
+- JSON tool output passes through unmodified (data format safety)
+- Tool output savings tracked in `/compress status` and verbose mode
 # Changelog
 
 ## [1.1.0] - 2026-06-11
@@ -27,4 +37,5 @@
 - Per-message language auto-detection
 - Verbose mode with token savings estimate
 - Cross-platform installer (install.sh + install.ps1)
+
 
