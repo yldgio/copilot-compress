@@ -73,4 +73,32 @@ describe('extractCodeBlocks', () => {
     // The span contains \r\n — should NOT be treated as a valid inline code token
     assert.equal(slots.size, 0, 'CRLF inside inline code incorrectly matched');
   });
+
+  // Slot shape: { raw, lang }
+  it('fenced block with lang tag stores lang correctly', () => {
+    const text = 'Example:\n```python\nprint("hi")\n```\ndone';
+    const { slots } = extractCodeBlocks(text);
+    assert.equal(slots.size, 1);
+    const [slot] = slots.values();
+    assert.equal(slot.lang, 'python');
+    assert.ok(slot.raw.includes('print("hi")'));
+  });
+
+  it('fenced block with no lang tag stores lang as empty string', () => {
+    const text = 'Example:\n```\nsome code\n```\ndone';
+    const { slots } = extractCodeBlocks(text);
+    assert.equal(slots.size, 1);
+    const [slot] = slots.values();
+    assert.equal(slot.lang, '');
+    assert.ok(slot.raw.includes('some code'));
+  });
+
+  it('inline code stores lang as empty string', () => {
+    const text = 'Call `myFunc()` here';
+    const { slots } = extractCodeBlocks(text);
+    assert.equal(slots.size, 1);
+    const [slot] = slots.values();
+    assert.equal(slot.lang, '');
+    assert.ok(slot.raw.includes('myFunc'));
+  });
 });

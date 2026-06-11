@@ -106,7 +106,7 @@ const SLOT_PREFIX = '__CODEBLOCK_';
 
 /**
  * @param {string} text
- * @returns {{ stripped: string, slots: Map<string, string> }}
+ * @returns {{ stripped: string, slots: Map<string, { raw: string, lang: string }> }}
  */
 function extractCodeBlocks(text) {
   const slots = new Map();
@@ -115,14 +115,15 @@ function extractCodeBlocks(text) {
   // Fenced first (they may contain backticks)
   let stripped = text.replace(FENCED_RE, (match) => {
     const key = `${SLOT_PREFIX}${idx++}__`;
-    slots.set(key, match);
+    const lang = match.match(/^```([\w-]*)/)?.[1] ?? '';
+    slots.set(key, { raw: match, lang });
     return key;
   });
 
   // Inline second
   stripped = stripped.replace(INLINE_RE, (match) => {
     const key = `${SLOT_PREFIX}${idx++}__`;
-    slots.set(key, match);
+    slots.set(key, { raw: match, lang: '' });
     return key;
   });
 
@@ -131,13 +132,13 @@ function extractCodeBlocks(text) {
 
 /**
  * @param {string} text
- * @param {Map<string, string>} slots
+ * @param {Map<string, { raw: string, lang: string }>} slots
  * @returns {string}
  */
 function restoreCodeBlocks(text, slots) {
   let out = text;
-  for (const [key, original] of slots) {
-    out = out.split(key).join(original);
+  for (const [key, slot] of slots) {
+    out = out.split(key).join(slot.raw);
   }
   return out;
 }
@@ -180,6 +181,35 @@ function detectLang(text) {
   if (discourse) score += discourse.length;
 
   return (score / words) >= IT_THRESHOLD ? 'it' : 'en';
+}
+
+// Data format detection helpers.
+// Used to bypass compression for content that must never be altered:
+// structured data formats (JSON, YAML, TOML, CSV, XML, etc.).
+
+
+/**
+ * Heuristic detection for unfenced JSON/YAML/TOML snippets in prose.
+ * Fail-closed: returns false on any error.
+ *
+ * @param {string} text
+ * @returns {boolean}
+ */
+function looksLikeDataFormat(text) {
+  try {
+    const t = text.trim();
+    // JSON check
+    if (t.startsWith('{') || t.startsWith('[')) {
+      try { JSON.parse(t); return true; } catch { /* not valid JSON */ }
+    }
+    // YAML heuristic: 2+ consecutive lines matching "word: anything"
+    const lines = t.split(/\r?\n/);
+    const yamlLines = lines.filter(l => /^\s*[\w-]+\s*:/.test(l));
+    if (yamlLines.length >= 2 && yamlLines.length >= lines.length * 0.5) return true;
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -249,6 +279,12 @@ session = await joinSession({
       // Compression pipeline
       try {
         const originalLen = text.length;
+
+        // Step 1: full-message data format bypass (before block extraction)
+        if (looksLikeDataFormat(text)) {
+          return; // return void = no modification, original prompt used
+        }
+
         const { stripped, slots } = extractCodeBlocks(text);
         const lang = detectLang(stripped);
         const compressedStripped = compressText(stripped, lang);

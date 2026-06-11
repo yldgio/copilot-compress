@@ -9,6 +9,7 @@ import { joinSession } from "@github/copilot-sdk/extension";
 import { compressText } from "./src/compress.mjs";
 import { extractCodeBlocks, restoreCodeBlocks } from "./src/code-blocks.mjs";
 import { detectLang } from "./src/lang-detect.mjs";
+import { looksLikeDataFormat } from "./src/data-format.mjs";
 
 // ─── Session state ────────────────────────────────────────────────────────────
 let session;
@@ -69,6 +70,12 @@ session = await joinSession({
       // Compression pipeline
       try {
         const originalLen = text.length;
+
+        // Step 1: full-message data format bypass (before block extraction)
+        if (looksLikeDataFormat(text)) {
+          return; // return void = no modification, original prompt used
+        }
+
         const { stripped, slots } = extractCodeBlocks(text);
         const lang = detectLang(stripped);
         const compressedStripped = compressText(stripped, lang);
