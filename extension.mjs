@@ -7,6 +7,7 @@
 
 import { joinSession } from "@github/copilot-sdk/extension";
 import { compressText } from "./src/compress.mjs";
+import { compressToolOutput } from "./src/tool-compress.mjs";
 import { extractCodeBlocks, restoreCodeBlocks } from "./src/code-blocks.mjs";
 import { stripComments } from "./src/comment-strip.mjs";
 import { detectLang } from "./src/lang-detect.mjs";
@@ -18,7 +19,21 @@ import { estimateTokens } from "./src/token-estimate.mjs";
 let session;
 let intensity   = 'off'; // 'off' | 'lite' | 'standard' | 'aggressive'
 let verboseMode = false;
-let stats = { originalChars: 0, compressedChars: 0, messageCount: 0, tokensSaved: 0 };
+let stats = { originalChars: 0, compressedChars: 0, messageCount: 0, tokensSaved: 0, toolOutputSavedChars: 0, toolCallCount: 0 };
+
+// ─── ToolResultObject helpers ─────────────────────────────────────────────────
+// SDK shape (v1.0.61): { textResultForLlm: string, resultType, error?, ... }
+
+function getToolOutputString(toolResult) {
+  if (typeof toolResult === 'string') return toolResult;
+  if (typeof toolResult?.textResultForLlm === 'string') return toolResult.textResultForLlm;
+  return null;
+}
+
+function setToolOutputString(toolResult, newOutput) {
+  if (typeof toolResult === 'string') return newOutput;
+  return { ...toolResult, textResultForLlm: newOutput };
+}
 
 // ─── /compress command handler ────────────────────────────────────────────────
 async function handleCompressCommand(context) {
@@ -51,9 +66,12 @@ async function handleCompressCommand(context) {
         `Compression: **OFF** · Verbose: ${verboseMode ? '**ON**' : '**OFF**'}`,
       );
     } else {
+      const toolLine = stats.toolCallCount > 0
+        ? `\nTool output: ~${stats.toolOutputSavedChars.toLocaleString()} chars saved across ${stats.toolCallCount} tool call${stats.toolCallCount === 1 ? '' : 's'}`
+        : '';
       await session.log([
         `Compression: **ON** (${intensity}) · Verbose: ${verboseMode ? '**ON**' : '**OFF**'}`,
-        `Session: ${stats.messageCount} msgs compressed, ~${tokensSaved.toLocaleString()} tokens saved`,
+        `Session: ${stats.messageCount} msgs compressed, ~${tokensSaved.toLocaleString()} tokens saved${toolLine}`,
       ].join('\n'));
     }
     return;
@@ -71,6 +89,34 @@ session = await joinSession({
     },
   ],
   hooks: {
+    onPostToolUse: async ({ toolName, toolResult }) => {
+      try {
+        if (intensity === 'off') return;
+
+        const outputStr = getToolOutputString(toolResult);
+        if (!outputStr) return;
+
+        const compressed = compressToolOutput(toolName, outputStr, intensity);
+        if (compressed === outputStr) return; // no change — avoid unnecessary allocation
+
+        const savedChars = outputStr.length - compressed.length;
+        stats.toolOutputSavedChars += savedChars;
+        stats.toolCallCount        += 1;
+
+        if (verboseMode) {
+          const pct = Math.round((savedChars / outputStr.length) * 100);
+          session.log(
+            `Tool [${toolName}]: ${outputStr.length.toLocaleString()} → ${compressed.length.toLocaleString()} chars (-${pct}%)`,
+            { ephemeral: true },
+          ).catch(() => {});
+        }
+
+        return { modifiedResult: setToolOutputString(toolResult, compressed) };
+      } catch {
+        // Never crash the hook — return undefined = pass through unchanged
+        return undefined;
+      }
+    },
     onUserPromptSubmitted: async (input) => {
       const text = (input.prompt ?? '').trim();
       if (!text) return undefined;
