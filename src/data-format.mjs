@@ -29,10 +29,13 @@ export function looksLikeDataFormat(text) {
     if (t.startsWith('{') || t.startsWith('[')) {
       try { JSON.parse(t); return true; } catch { /* not valid JSON */ }
     }
-    // YAML heuristic: 2+ consecutive lines matching "word: anything"
+    // YAML frontmatter / document separator — strong signal
+    if (t.includes('---\n') || t.startsWith('---')) return true;
+    // YAML heuristic: require 3+ key:value lines (raised from 2 to avoid false
+    // positives on natural-language bullets like "Note: X\nWarning: Y")
     const lines = t.split(/\r?\n/);
     const yamlLines = lines.filter(l => /^\s*[\w-]+\s*:/.test(l));
-    if (yamlLines.length >= 2 && yamlLines.length >= lines.length * 0.5) return true;
+    if (yamlLines.length >= 3 && yamlLines.length >= lines.length * 0.5) return true;
     return false;
   } catch {
     return false;
