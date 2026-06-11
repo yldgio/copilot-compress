@@ -102,8 +102,9 @@ session = await joinSession({
         }
 
         const lang = detectLang(stripped);
-        const compressedStripped = compressText(stripped, lang, intensity);
-        const finalText = restoreCodeBlocks(compressedStripped, slots);
+        const result = compressText(stripped, lang, intensity);
+        if (result === undefined) return; // safety gate fired — fallback to original
+        const finalText = restoreCodeBlocks(result, slots);
 
         if (!validate(text, finalText)) {
           if (verboseMode) session.log('⚠️ Validator: invariant failed, using original prompt');

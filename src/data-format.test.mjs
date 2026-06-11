@@ -31,6 +31,15 @@ describe('looksLikeDataFormat', () => {
     assert.equal(looksLikeDataFormat('key: value\nother: thing\nthird: item'), true);
   });
 
+  it('YAML with --- document separator → true', () => {
+    assert.equal(looksLikeDataFormat('---\nkey: value\nother: thing'), true);
+  });
+
+  it('two-line natural-language colon bullets → false (not YAML)', () => {
+    // "Note: X\nWarning: Y" was a false positive at the old threshold of 2
+    assert.equal(looksLikeDataFormat('Note: check this\nWarning: do that'), false);
+  });
+
   it('invalid JSON → false (fail closed)', () => {
     assert.equal(looksLikeDataFormat('{"broken":}'), false);
   });
