@@ -30,7 +30,14 @@ The installers deploy `dist/extension.mjs`, not the raw source files. This singl
 | Config | `rollup.config.js` |
 | External | `@github/copilot-sdk/extension` (never bundled — installed via npm) |
 
-**Rule:** always run `npm run build` before committing if you change `extension.mjs` or any `src/` file. The `dist/` folder is committed so users can install without a build step.
+**Build invariant:** after every change to `extension.mjs` or any `src/` file, run **both** of these commands before committing:
+
+```sh
+npm run build
+cp dist/extension.mjs .github/extensions/copilot-compress/extension.mjs
+```
+
+The `dist/` folder is committed so users can install without a build step. The `.github/extensions/copilot-compress/` directory is gitignored (it's the project-scoped dogfooding install) — keep it in sync manually after every build.
 
 ## Key design decisions
 
@@ -41,6 +48,18 @@ The installers deploy `dist/extension.mjs`, not the raw source files. This singl
 5. `src/compress.mjs` is a verbatim copy from source and must be synced from upstream without local divergence.
 
 ## Installation
+
+### Quick install — no clone required (agent one-liner)
+
+```sh
+# Linux/macOS — latest release
+curl -fsSL https://raw.githubusercontent.com/yldgio/copilot-compress/main/install.sh | sh -s -- --remote
+
+# Windows (pwsh) — downloads installer to temp, then runs with -Remote
+$f = "$env:TEMP\copilot-compress-install.ps1"
+Invoke-WebRequest https://raw.githubusercontent.com/yldgio/copilot-compress/main/install.ps1 -OutFile $f
+pwsh $f -Remote
+```
 
 ### User-wide install (recommended)
 
@@ -98,6 +117,20 @@ Set-Location $HOME\.copilot\extensions\copilot-compress
 npm install --omit=dev
 ```
 
+## Release process
+
+Releases are tag-based. GitHub Actions handles everything:
+
+```sh
+git tag v1.x.x
+git push --tags
+```
+
+The `release.yml` workflow will:
+1. `npm ci` + `npm test` (must be 23/23)
+2. `npm run build` + verify no local imports in `dist/extension.mjs`
+3. Create a GitHub Release with `dist/extension.mjs`, `package.json`, `install.sh`, `install.ps1`, `README.md` as assets
+
 ## Testing
 
 Run:
@@ -129,3 +162,4 @@ Current suite total: **23 tests**.
 3. `onUserPromptSubmitted` must never throw.
 4. Command output must use `session.log()` and never `modifiedPrompt`.
 5. `dist/extension.mjs` must be rebuilt (`npm run build`) and committed whenever `extension.mjs` or any `src/` file changes.
+6. After every `npm run build`, copy `dist/extension.mjs` to `.github/extensions/copilot-compress/extension.mjs` to keep the project-scoped dogfooding install in sync.
