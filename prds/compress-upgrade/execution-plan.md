@@ -106,7 +106,13 @@ Goal: 40–60% token savings on EN/IT prompt text. Zero breaking changes.
 
 ## Wave 2 — Tool Output Compression (target: v1.2.0)
 
-**Blocker**: Open Question §15.1 in `architecture.md` must be resolved — confirm `onToolResult` is available in `@github/copilot-sdk/extension` API. If not available, Wave 2 is deferred.
+**Blocker**: ✅ RESOLVED (2026-06-11) — `onPostToolUse` is confirmed available in `@github/copilot-sdk` (`types.d.ts:872`).
+
+Hook contract:
+- Input: `{ toolName: string, toolArgs: unknown, toolResult: ToolResultObject }`
+- Output: `{ modifiedResult?: ToolResultObject, additionalContext?: string, suppressOutput?: boolean }`
+- Fires for successful tool results only. Register `onPostToolUseFailure` separately for failures.
+- Known SDK bug: if multiple extensions register `onPostToolUse`, only the last-loaded fires (issue #2076). Non-issue for copilot-compress (sole extension with this hook).
 
 ### Slice 2.A — Tool Output Filter Module
 
@@ -161,7 +167,7 @@ Wave 3: v1.2.0 done → 3.A → v1.3.0
 
 | # | Question | Blocks |
 |---|---------|--------|
-| §15.1 | Is `onToolResult` available in `@github/copilot-sdk/extension`? | Wave 2 entirely |
+| §15.1 | ~~Is `onToolResult` available in `@github/copilot-sdk/extension`?~~ ✅ **RESOLVED** — `onPostToolUse` confirmed in `types.d.ts:872`. Output field: `modifiedResult`. Wave 2 unblocked. | ~~Wave 2 entirely~~ |
 | §15.2 | Should `minimal` mode strip pleasantries? (Current plan: yes) | Slice 1.C |
 | §15.3 | Italian hedging word list — needs review against real session data | Slice 1.C |
 | §15.4 | Safety gate proper noun ratio threshold (40% is a hypothesis) | Slice 1.C |
