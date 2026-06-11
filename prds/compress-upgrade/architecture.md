@@ -60,7 +60,7 @@ copilot-compress/
 │   ├── code-blocks.mjs            ← MODIFIED  (expose language tag from fenced slots)
 │   ├── lang-detect.mjs            ← UNCHANGED
 │   │
-│   ├── intensity.mjs              ← NEW  feature-gate matrix for none/minimal/aggressive
+│   ├── intensity.mjs              ← NEW  feature-gate matrix for off/lite/aggressive
 │   ├── comment-strip.mjs          ← NEW  language-aware comment removal inside code slots
 │   ├── data-format.mjs            ← NEW  JSON/YAML/TOML/CSV/XML detection + bypass
 │   ├── safety.mjs                 ← NEW  clarity gate (sentence length, proper noun ratio)
@@ -177,12 +177,12 @@ onUserPromptSubmitted(input)
 Module: `src/intensity.mjs`
 
 ```js
-export const INTENSITIES = ['none', 'minimal', 'aggressive'];
+export const INTENSITIES = ['off', 'lite', 'aggressive'];
 
 export function gateEnabled(feature, intensity) → boolean
 ```
 
-| Feature              | none | minimal | aggressive |
+| Feature              | off  | lite    | aggressive |
 |----------------------|------|---------|------------|
 | `filler_basic`       | ✗    | ✓       | ✓          |
 | `filler_deep`        | ✗    | ✗       | ✓          |
@@ -193,21 +193,21 @@ export function gateEnabled(feature, intensity) → boolean
 | `data_format_bypass` | ✓    | ✓       | ✓          |
 | `post_validate`      | ✗    | ✓       | ✓          |
 
-- `none` — pipeline runs but no transforms fire. Equivalent to `compressEnabled = false`. Reserved for testing and future automation.
-- `minimal` — **default** (preserves current behavior exactly when no new features configured). Basic fillers only, no code touching.
+- `off` — pipeline runs but no transforms fire. Equivalent to `compressEnabled = false`. Reserved for testing and future automation.
+- `lite` — **default** (preserves current behavior exactly when no new features configured). Basic fillers only, no code touching.
 - `aggressive` — all transforms. Deeper fillers, comment stripping, structure collapse, full safety gate.
 
-**Default intensity: `'minimal'`** — ensures zero behavioral change for existing users.
+**Default intensity: `'lite'`** — ensures zero behavioral change for existing users.
 
 ### 4.2 Impact on `compressText()`
 
 `src/compress.mjs` receives `intensity` as a third parameter:
 
 ```js
-export function compressText(text, lang = 'en', intensity = 'minimal') → string
+export function compressText(text, lang = 'en', intensity = 'lite') → string
 ```
 
-At `minimal`: current behavior unchanged — `ENGLISH_FILLERS` regex only (EN), IT three-pass only (IT).
+At `lite`: current behavior unchanged — `ENGLISH_FILLERS` regex only (EN), IT three-pass only (IT).
 
 At `aggressive`: additional passes after the existing logic:
 
@@ -365,7 +365,7 @@ export function compressToolOutput(toolName, output, intensity) → string
 | `bash`, `run`, `shell` | If > 100 lines: keep first 30 + `…[N lines omitted]…` + last 10 | 100 lines |
 | `*` (default) | If > 500 chars: keep first 300 + `…[truncated N chars]…` | 500 chars |
 
-At `minimal` intensity: only default strategy applies.
+at `lite` intensity: only default strategy applies.
 At `aggressive` intensity: tool-specific strategies apply.
 
 ### 7.4 Tool Schema De-duplication
@@ -425,7 +425,7 @@ Transforms applied (ordered):
 /compress mode off      → domainMode = null
 ```
 
-Domain mode is orthogonal to intensity. Active at `minimal` and `aggressive`.
+Domain mode is orthogonal to intensity. Active at `lite` and `aggressive`.
 
 ---
 
@@ -433,7 +433,7 @@ Domain mode is orthogonal to intensity. Active at `minimal` and `aggressive`.
 
 Module: `src/validator.mjs`
 
-**Triggered at:** pipeline step 9, intensities `minimal` and `aggressive`.
+**Triggered at:** pipeline step 9, intensities `lite` and `aggressive`.
 
 ```js
 export function validateCompression(original, compressed) → { valid: boolean, violations: string[] }
@@ -466,7 +466,7 @@ let verboseMode     = false;
 let stats = { originalChars: 0, compressedChars: 0, messageCount: 0 };
 
 // New:
-let intensity           = 'minimal';   // 'none' | 'minimal' | 'aggressive'
+let intensity           = 'lite';   // 'off' | 'lite' | 'aggressive'
 let domainMode          = null;         // null | 'commit' | 'review'
 let modelFamily         = 'gpt4';       // 'gpt4' | 'claude' | 'gemini'
 let toolCompressEnabled = false;        // onToolResult compression opt-in
@@ -490,11 +490,11 @@ Token estimation uses `estimateTokens(charCount, modelFamily)` from `src/token-e
 
 | `context.args` | Mutation | Response |
 |----------------|----------|----------|
-| `on` | `compressEnabled = true` | `"Compression ON (intensity: minimal)"` |
+| `on` | `compressEnabled = true` | `"Compression ON (intensity: lite)"` |
 | `off` | `compressEnabled = false` | `"Compression OFF"` |
 | `verbose` | `verboseMode = !verboseMode` | toggle message |
 | `status` / `""` | none | expanded stats (§10.2) |
-| `intensity minimal` | `intensity = 'minimal'` | `"Intensity: minimal"` |
+| `intensity lite` | `intensity = 'lite'` | `"Intensity: lite"` |
 | `intensity aggressive` | `intensity = 'aggressive'` | `"Intensity: aggressive"` |
 | `mode commit` | `domainMode = 'commit'` | `"Domain mode: commit"` |
 | `mode review` | `domainMode = 'review'` | `"Domain mode: review"` |
@@ -543,17 +543,17 @@ Note: glob `src/*.test.mjs` is NOT used because PowerShell does not expand glob 
 | `/compress off` deactivates | ✓ | same |
 | `/compress verbose` toggles verbose | ✓ | same |
 | `/compress status` shows stats | ✓ | extended, not replaced |
-| `intensity = 'minimal'` produces current output | ✓ | `compressText` minimal path = current body verbatim |
+| `intensity = 'lite'` produces current output | ✓ | `compressText` lite path = current body verbatim |
 | Code blocks extracted before, restored after | ✓ | `code-blocks.mjs` API preserved; `slots` shape change is internal |
 | LLM note format | ✓ | `extension.mjs:85` note string unchanged |
 | No crash on exception | ✓ | outer try/catch preserved |
-| Token estimate formula at minimal | ✓ | `estimateTokens(chars, 'gpt4')` returns `Math.round(chars / 4)` |
+| Token estimate formula at lite | ✓ | `estimateTokens(chars, 'gpt4')` returns `Math.round(chars / 4)` |
 
 ### 12.2 Behavioral changes that are additive only
 
 - New commands (`intensity`, `mode`, `model`, `tools`) added to dispatch. Unknown args still returns "Unknown subcommand" + updated usage string.
 - Data format bypass: NEW behavior — a prompt that is entirely JSON/YAML now passes through unchanged. Previously it would have been (uselessly) compressed. This is correct behavior, not a regression.
-- Safety gate at `minimal`: blocks only if `text.split(/\s+/).length < 5` (too-short prompts). Previously these would compress to near-empty strings — pass-through is strictly better.
+- Safety gate At `lite`: blocks only if `text.split(/\s+/).length < 5` (too-short prompts). Previously these would compress to near-empty strings — pass-through is strictly better.
 
 ### 12.3 Slots shape change (`code-blocks.mjs`)
 
@@ -594,7 +594,7 @@ Each new module ships a `.test.mjs`. Minimum cases per module:
 | `intensity.mjs` | gateEnabled returns correct values for all feature × intensity combinations |
 | `comment-strip.mjs` | strips JS `//`, strips JS `/* */`, preserves JSDoc, strips Python `#`, preserves shebang, no-op for unknown lang |
 | `data-format.mjs` | detects JSON object, JSON array, YAML, TOML, CSV, XML; does NOT flag plain prose; does NOT flag fenced code block prose |
-| `safety.mjs` | blocks < 5 words (minimal), passes normal prose (minimal), blocks high proper noun ratio (aggressive), passes mixed text (aggressive) |
+| `safety.mjs` | blocks < 5 words (lite), passes normal prose (lite), blocks high proper noun ratio (aggressive), passes mixed text (aggressive) |
 | `validator.mjs` | passes identical text, flags heading loss, flags URL loss, flags inline code loss, flags > 90% reduction, flags orphaned comma |
 | `tool-compress.mjs` | grep truncation, view truncation, bash truncation, default truncation, no-op on short output |
 | `domain.mjs` | commit strips preamble, commit preserves diff content, review strips hedging, review preserves L:N refs |
@@ -618,7 +618,7 @@ If `onToolResult` does exist: what are the field names for tool name, output con
 
 **15.3 Intensity default** — DECISION NEEDED
 
-Default is proposed as `'minimal'` to preserve current behavior. Confirm with Gio. If `'aggressive'` is preferred as the "on" default, the `intensity` initialization changes from `'minimal'` to `'aggressive'` at `extension.mjs` scope. This is a one-line change but must be a deliberate decision.
+Default is proposed as `'lite'` to preserve current behavior. Confirm with Gio. If `'aggressive'` is preferred as the "on" default, the `intensity` initialization changes from `'lite'` to `'aggressive'` at `extension.mjs` scope. This is a one-line change but must be a deliberate decision.
 
 **15.4 JSDoc and Rust doc-comment preservation** — DECISION NEEDED
 
@@ -642,7 +642,7 @@ The current script lists test files explicitly (compatible with Windows PowerShe
 
 ```js
 // src/intensity.mjs
-export const INTENSITIES = ['none', 'minimal', 'aggressive'];
+export const INTENSITIES = ['off', 'lite', 'aggressive'];
 export function gateEnabled(feature, intensity) → boolean
 
 // src/comment-strip.mjs
