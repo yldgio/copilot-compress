@@ -8,8 +8,9 @@
 import { joinSession } from "@github/copilot-sdk/extension";
 import { compressText } from "./src/compress.mjs";
 import { extractCodeBlocks, restoreCodeBlocks } from "./src/code-blocks.mjs";
+import { stripComments } from "./src/comment-strip.mjs";
 import { detectLang } from "./src/lang-detect.mjs";
-import { looksLikeDataFormat } from "./src/data-format.mjs";
+import { isDataFormatLang, looksLikeDataFormat } from "./src/data-format.mjs";
 import { validate } from "./src/validator.mjs";
 
 // ─── Session state ────────────────────────────────────────────────────────────
@@ -85,7 +86,21 @@ session = await joinSession({
           return; // return void = no modification, original prompt used
         }
 
-        const { stripped, slots } = extractCodeBlocks(text, intensity);
+        const { stripped, slots } = extractCodeBlocks(text);
+
+        // Step 3: strip comments from code slots at aggressive intensity
+        // Composition root: extension.mjs owns cross-module wiring
+        if (intensity === 'aggressive') {
+          for (const [key, slot] of slots) {
+            if (slot.lang && !isDataFormatLang(slot.lang)) {
+              const slotCode = slot.raw.match(/^```[\w-]*\r?\n([\s\S]*?)```$/)?.[1] ?? '';
+              const strippedContent = stripComments(slotCode, slot.lang);
+              // CRLF is intentionally normalized to LF as part of aggressive compression
+              slots.set(key, { raw: '```' + slot.lang + '\n' + strippedContent + '\n```', lang: slot.lang });
+            }
+          }
+        }
+
         const lang = detectLang(stripped);
         const compressedStripped = compressText(stripped, lang, intensity);
         const finalText = restoreCodeBlocks(compressedStripped, slots);
