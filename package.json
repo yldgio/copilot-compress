@@ -6,7 +6,7 @@
   "main": "dist/extension.mjs",
   "scripts": {
     "build": "rollup -c",
-    "test": "node --test src/compress.test.mjs src/code-blocks.test.mjs src/lang-detect.test.mjs"
+    "test": "node --test src/compress.test.mjs src/code-blocks.test.mjs src/lang-detect.test.mjs src/data-format.test.mjs"
   },
   "dependencies": {
     "@github/copilot-sdk": "*"

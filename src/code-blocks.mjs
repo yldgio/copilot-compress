@@ -8,7 +8,7 @@ const SLOT_PREFIX = '__CODEBLOCK_';
 
 /**
  * @param {string} text
- * @returns {{ stripped: string, slots: Map<string, string> }}
+ * @returns {{ stripped: string, slots: Map<string, { raw: string, lang: string }> }}
  */
 export function extractCodeBlocks(text) {
   const slots = new Map();
@@ -17,14 +17,15 @@ export function extractCodeBlocks(text) {
   // Fenced first (they may contain backticks)
   let stripped = text.replace(FENCED_RE, (match) => {
     const key = `${SLOT_PREFIX}${idx++}__`;
-    slots.set(key, match);
+    const lang = match.match(/^```([\w-]*)/)?.[1] ?? '';
+    slots.set(key, { raw: match, lang });
     return key;
   });
 
   // Inline second
   stripped = stripped.replace(INLINE_RE, (match) => {
     const key = `${SLOT_PREFIX}${idx++}__`;
-    slots.set(key, match);
+    slots.set(key, { raw: match, lang: '' });
     return key;
   });
 
@@ -33,13 +34,13 @@ export function extractCodeBlocks(text) {
 
 /**
  * @param {string} text
- * @param {Map<string, string>} slots
+ * @param {Map<string, { raw: string, lang: string }>} slots
  * @returns {string}
  */
 export function restoreCodeBlocks(text, slots) {
   let out = text;
-  for (const [key, original] of slots) {
-    out = out.split(key).join(original);
+  for (const [key, slot] of slots) {
+    out = out.split(key).join(slot.raw);
   }
   return out;
 }
